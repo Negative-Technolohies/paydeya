@@ -1,0 +1,15 @@
+name: Sync Issue to Project
+on:
+  workflow_call:
+    secrets:
+      PROJECT_TOKEN:
+        required: true
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v2
+        with:
+          project-url: https://github.com/orgs/Negative-Technolohies/projects/1
+          github-token: ${{ secrets.PROJECT_TOKEN }}
