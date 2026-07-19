@@ -18,6 +18,7 @@ jobs:
           git submodule update --remote ${{ github.event.client_payload.submodule }}
           git add ${{ github.event.client_payload.submodule }}
           git diff --staged --quiet || (
-            git commit -m "chore: update ${{ github.event.client_payload.submodule }} [skip ci]" &&
+            msg=$(cd ${{ github.event.client_payload.submodule }} && git log -1 --pretty=format:"%s")
+            git commit -m "chore: update ${{ github.event.client_payload.submodule }} — $msg [skip ci]" &&
             git push
           )
