@@ -1,0 +1,20 @@
+name: Handle submodule update
+on:
+  repository_dispatch:
+    types: [update-submodule]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.SUBMODULES_SYNC }}
+      - run: |
+          git submodule update --remote ${{ github.event.client_payload.submodule }}
+          git add ${{ github.event.client_payload.submodule }}
+          git diff --staged --quiet || (
+            git commit -m "chore: update ${{ github.event.client_payload.submodule }} [skip ci]" &&
+            git push
+          )
