@@ -491,7 +491,10 @@ git checkout main
 git revert HEAD --no-commit
 git commit -m "fix: откат предыдущего коммита"
 git push origin main
+<<<<<<< HEAD
 # После отката — создать задачу на фикс и пройти через develop
+=======
+>>>>>>> origin/develop
 ```
 
 ---
