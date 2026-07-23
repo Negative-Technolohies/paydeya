@@ -241,18 +241,13 @@ main (баг на проде)
 - Если фикс сложнее, чем кажется на первый взгляд
 - Если ответственный за модуль недоступен
 
-**Варианты отката:**
+**Откат через git revert:**
 
 ```bash
-# Вариант 1: git revert (сохраняет историю)
 git checkout main
 git revert HEAD --no-commit
 git commit -m "fix: откат предыдущего коммита, сломал прод"
-
-# Вариант 2: переключение Docker-образа
-# Развернуть предыдущий стабильный образ
-docker pull ghcr.io/negative-technolohies/paydeya-backend:previous-tag
-docker compose up -d
+git push origin main
 ```
 
 После отката — создать задачу на фикс и пройти обычный процесс через `develop`.
@@ -491,11 +486,12 @@ git push -u origin hotfix/GH-456-критический-баг
 # → PR в main → аппрув → мёрж
 # → PR из той же hotfix/ в develop (бэкпорт)
 
-# Rollback (откат)
+# Rollback (откат через git revert)
 git checkout main
 git revert HEAD --no-commit
 git commit -m "fix: откат предыдущего коммита"
 git push origin main
+# После отката — создать задачу на фикс и пройти через develop
 ```
 
 ---
