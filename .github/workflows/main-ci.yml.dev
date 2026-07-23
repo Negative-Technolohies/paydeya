@@ -1,0 +1,45 @@
+#Это сценарий для CI при PR в main-ветку
+name: Main CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  release-check:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Verify repository
+        run: |
+          ls -la
+
+      #Простые тесты
+      - name: Smoke tests
+        run: |
+          echo "TODO: Smoke tests"
+
+      #Тест на билды докера
+
+      - name: Build frontend image
+        run: |
+          echo "docker build frontend"
+
+      - name: Build backend image
+        run: |
+          echo "docker build backend"
+
+      #Проверка работы образа целиком
+
+      - name: Verify images
+        run: |
+          echo "Image validation"

@@ -1,0 +1,57 @@
+#Это сценарий для деплоя версии на веб-сервер: билд образов frontend и backend, пуш в registry, ssh к веб-серверу, пулл образов и запуск в Docker-compose
+#Срабатывает при успешном CI
+
+name: Production Deploy
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: registry.pulusik.ru/paydeya-project
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Login Registry
+        run: |
+          echo "Login GitLab Registry"
+
+      - name: Build frontend image
+        run: |
+          echo "docker build frontend"
+
+      - name: Build backend image
+        run: |
+          echo "docker build backend"
+
+      - name: Push frontend image
+        run: |
+          echo "docker push frontend"
+
+      - name: Push backend image
+        run: |
+          echo "docker push backend"
+
+      - name: Deploy by SSH
+        run: |
+          echo "SSH to server"
+
+      - name: Pull images
+        run: |
+          echo "docker compose pull"
+
+      - name: Restart containers
+        run: |
+          echo "docker compose up -d"
+
+      - name: Healthcheck
+        run: |
+          echo "Check service"

@@ -1,0 +1,66 @@
+#Это сценарий для CI при PR в develop-ветку
+name: Develop CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+
+  ci:
+
+    name: Build and Test
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Show project structure
+        run: |
+          pwd
+          ls -la
+          tree -L 2
+
+      - name: Verify backend exists
+        run: |
+          test -d backend
+
+      - name: Verify frontend exists
+        run: |
+          test -d frontend
+
+
+      #---------- Тесты frontend ----------
+      - name: Frontend build
+        run: |
+          echo "Здесь происходит билд фронта"
+
+      - name: Frontend tests
+        run: |
+          echo "Здесь поочередно запускаются тесты"
+
+
+      #---------- Тесты backend ----------
+      - name: Backend build
+        run: |
+          echo "Здесь билдится бэк"
+
+      - name: Backend tests
+        run: |
+          echo "Здесь тестится бэк"
+
+
+      # DOCKER
+      - name: Docker build frontend
+        run: |
+          echo "Здесь проверка, что билдится образ контейнера фронта"
+
+      - name: Docker build backend
+        run: |
+          echo "Здесь проверяется, что билдится образ контейнера бэка"
