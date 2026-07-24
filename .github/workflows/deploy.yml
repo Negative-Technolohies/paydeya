@@ -11,8 +11,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      REGISTRY: registry.pulusik.ru/paydeya-project
+      REGISTRY: registry.pulusik.ru #Заменить на секрет?
+      REGISTRY_PATH: negative-technolohies/paydeya #Заменить на секрет?
       IMAGE_TAG: ${{ github.sha }}
+
     steps:
 
       - name: Checkout
@@ -22,36 +24,44 @@ jobs:
 
       - name: Login Registry
         run: |
-          echo "Login GitLab Registry"
-
-      - name: Build frontend image
-        run: |
-          echo "docker build frontend"
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
 
       - name: Build backend image
         run: |
-          echo "docker build backend"
+          docker build -t $REGISTRY/$REGISTRY_PATH/backend:$IMAGE_TAG ./backend
 
-      - name: Push frontend image
+      - name: Build frontend image
         run: |
-          echo "docker push frontend"
+          docker build -t $REGISTRY/$REGISTRY_PATH/frontend:$IMAGE_TAG ./frontend
 
       - name: Push backend image
         run: |
-          echo "docker push backend"
+          docker push $REGISTRY/$REGISTRY_PATH/backend:$IMAGE_TAG
+
+      - name: Push frontend image
+        run: |
+          docker push $REGISTRY/$REGISTRY_PATH/frontend:$IMAGE_TAG
 
       - name: Deploy by SSH
-        run: |
-          echo "SSH to server"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
 
-      - name: Pull images
-        run: |
-          echo "docker compose pull"
+          script: |
+            cd /opt/paydeya
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
 
-      - name: Restart containers
-        run: |
-          echo "docker compose up -d"
-
-      - name: Healthcheck
-        run: |
-          echo "Check service"
+#      - name: Healthcheck
+#        run: |
+#          echo "Docker containers check"
+#	   docker ps -a
+#
+#	   echo "Backend healthcheck"
+#	   curl -l localhost:8080/api/health
+#
+#	   echo "Frontend healthcheck"
+#	   curl -l localhost:8080
