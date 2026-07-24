@@ -36,7 +36,7 @@ jobs:
           test -d frontend
 
 
-      #---------- Тесты frontend ----------
+      #---------- Тесты frontend ----------?
       - name: Frontend build
         run: |
           echo "Здесь происходит билд фронта"
@@ -46,7 +46,7 @@ jobs:
           echo "Здесь поочередно запускаются тесты"
 
 
-      #---------- Тесты backend ----------
+      #---------- Тесты backend ----------?
       - name: Backend build
         run: |
           echo "Здесь билдится бэк"
@@ -56,11 +56,32 @@ jobs:
           echo "Здесь тестится бэк"
 
 
-      # DOCKER
-      - name: Docker build frontend
-        run: |
-          echo "Здесь проверка, что билдится образ контейнера фронта"
+      #Тест на билды докера
 
-      - name: Docker build backend
+      - name: Backend image build
         run: |
-          echo "Здесь проверяется, что билдится образ контейнера бэка"
+          docker build -t backend:test ./backend
+          echo "## Проверка сформированных образов: ##"
+          docker images
+
+      - name: Backend container run test
+        run: |
+          docker run -d --name backend-test backend:test
+          echo "## Sleep 10 ##"
+          run: sleep 10
+          echo "## Проверка запущенных контейнеров: ##"
+          docker ps -a
+
+      - name: Frontend image build
+        run: |
+          docker build -t frontend:test ./frontend
+          echo "## Проверка сформированных образов: ##"
+          docker images
+
+      - name: Frontend container run test
+        run: |
+          docker run -d --name frontend-test frontend:test
+          echo "## Sleep 10 ##"
+          run: sleep 10
+          echo "## Проверка запущенных контейнеров: ##"
+          docker ps -a
