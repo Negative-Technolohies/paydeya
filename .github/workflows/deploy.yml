@@ -22,6 +22,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Docker info
+        run: |
+          docker version
+          docker info
+
       - name: Login Registry
         run: |
           echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
@@ -47,7 +52,7 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           port: ${{ secrets.SERVER_SSH_PORT }}
-	  username: ${{ secrets.SERVER_USER }}
+          username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
 
           script: |
@@ -59,10 +64,10 @@ jobs:
 #      - name: Healthcheck
 #        run: |
 #          echo "Docker containers check"
-#	   docker ps -a
+#          docker ps -a
 #
-#	   echo "Backend healthcheck"
-#	   curl -l localhost:8080/api/health
+#          echo "Backend healthcheck"
+#          curl -l localhost:8080/api/health
 #
-#	   echo "Frontend healthcheck"
-#	   curl -l localhost:8080
+#          echo "Frontend healthcheck"
+#          curl -l localhost:8080
