@@ -16,10 +16,19 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
       - run: |
-          git submodule update --remote ${{ github.event.client_payload.submodule }}
-          git add ${{ github.event.client_payload.submodule }}
-          git diff --staged --quiet || (
-            msg=$(cd ${{ github.event.client_payload.submodule }} && git log -1 --pretty=format:"%s")
-            git commit -m "chore: update ${{ github.event.client_payload.submodule }} — $msg [skip ci]" &&
+          set -eo pipefail
+          submodule="${{ github.event.client_payload.submodule }}"
+          case "$submodule" in
+            backend|frontend) ;;
+            *) echo "::error::Неизвестный сабмодуль: $submodule"; exit 1 ;;
+          esac
+          git -C "$submodule" fetch origin
+          git -C "$submodule" checkout --detach origin/develop
+          git add "$submodule"
+          if git diff --cached --quiet; then
+            echo "::notice::Submodule $submodule уже актуален, коммит не нужен"
+          else
+            msg=$(git -C "$submodule" log -1 --pretty=format:"%s")
+            git commit -m "chore: update $submodule — $msg [skip ci]"
             git push origin develop
-          )
+          fi
