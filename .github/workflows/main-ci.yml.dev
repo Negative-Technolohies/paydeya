@@ -33,30 +33,30 @@ jobs:
       - name: Backend image build
         run: |
           docker build -t backend:test ./backend
-	  echo "## Проверка сформированных образов: ##"
-	  docker images
+          echo "## Проверка сформированных образов: ##"
+          docker images
 
       - name: Backend container run test
-	run: |
-	  docker run -d --name backend-test backend:test
-	  echo "## Sleep 10 ##"
-	  sleep 10 
-	  echo "## Проверка запущенных контейнеров: ##"
-	  docker ps -a
+        run: |
+          docker run -d --name backend-test backend:test
+          echo "## Sleep 10 ##"
+          sleep 10 
+          echo "## Проверка запущенных контейнеров: ##"
+          docker ps -a
 
       - name: Frontend image build
         run: |
           docker build -t frontend:test ./frontend
-	  echo "## Проверка сформированных образов: ##"
-	  docker images
+          echo "## Проверка сформированных образов: ##"
+          docker images
 
       - name: Frontend container run test
-	run: |
-	  docker run -d --name frontend-test frontend:test
-	  echo "## Sleep 10 ##"
-	  sleep 10
-	  echo "## Проверка запущенных контейнеров: ##"
-	  docker ps -a
+        run: |
+          docker run -d --name frontend-test frontend:test
+          echo "## Sleep 10 ##"
+          sleep 10
+          echo "## Проверка запущенных контейнеров: ##"
+          docker ps -a
 
 
       #Проверка работы образа целиком
