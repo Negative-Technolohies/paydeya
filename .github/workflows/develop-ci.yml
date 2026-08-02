@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PROJECT_ACCESS_TOKEN }} 
+          token: ${{ secrets.SUBMODULES_CONTENT_ACCESS_TOKEN }} 
           submodules: recursive
 
       - name: Show project structure
