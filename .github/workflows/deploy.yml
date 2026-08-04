@@ -57,6 +57,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
 
           script: |
+            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
             cd /opt/paydeya
             docker compose pull
             docker compose up -d
