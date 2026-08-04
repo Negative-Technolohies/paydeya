@@ -1,0 +1,75 @@
+#Это сценарий для деплоя версии на веб-сервер: билд образов frontend и backend, пуш в registry, ssh к веб-серверу, пулл образов и запуск в Docker-compose
+#Срабатывает при успешном CI
+
+name: Production Deploy
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: registry.pulusik.ru #Заменить на секрет?
+      REGISTRY_PATH: negative-technolohies/paydeya #Заменить на секрет?
+      IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SUBMODULES_CONTENT_ACCESS_TOKEN }} 
+          submodules: recursive
+
+      - name: Docker info
+        run: |
+          docker version
+          docker info
+
+      - name: Login Registry
+        run: |
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+
+      - name: Build backend image
+        run: |
+          docker build -t $REGISTRY/$REGISTRY_PATH/backend:$IMAGE_TAG ./backend
+
+      - name: Build frontend image
+        run: |
+          docker build -t $REGISTRY/$REGISTRY_PATH/frontend:$IMAGE_TAG ./frontend
+
+      - name: Push backend image
+        run: |
+          docker push $REGISTRY/$REGISTRY_PATH/backend:$IMAGE_TAG
+
+      - name: Push frontend image
+        run: |
+          docker push $REGISTRY/$REGISTRY_PATH/frontend:$IMAGE_TAG
+
+      - name: Deploy by SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+
+          script: |
+            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+            cd /opt/paydeya
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
+
+#      - name: Healthcheck
+#        run: |
+#          echo "Docker containers check"
+#          docker ps -a
+#
+#          echo "Backend healthcheck"
+#          curl -l localhost:8080/api/health
+#
+#          echo "Frontend healthcheck"
+#          curl -l localhost:8080

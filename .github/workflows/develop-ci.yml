@@ -1,0 +1,88 @@
+#Это сценарий для CI при PR в develop-ветку
+name: Develop CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+
+  ci:
+
+    name: Build and Test
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SUBMODULES_CONTENT_ACCESS_TOKEN }} 
+          submodules: recursive
+
+      - name: Show project structure
+        run: |
+          pwd
+          ls -la
+          tree -L 2
+
+      - name: Verify backend exists
+        run: |
+          test -d backend
+
+      - name: Verify frontend exists
+        run: |
+          test -d frontend
+
+
+      #---------- Тесты frontend ----------?
+      - name: Frontend build
+        run: |
+          echo "Здесь происходит билд фронта"
+
+      - name: Frontend tests
+        run: |
+          echo "Здесь поочередно запускаются тесты"
+
+
+      #---------- Тесты backend ----------?
+      - name: Backend build
+        run: |
+          echo "Здесь билдится бэк"
+
+      - name: Backend tests
+        run: |
+          echo "Здесь тестится бэк"
+
+
+      #Тест на билды докера
+
+      - name: Backend image build
+        run: |
+          docker build -t backend:test ./backend
+          echo "## Проверка сформированных образов: ##"
+          docker images
+
+      - name: Backend container run test
+        run: |
+          docker run -d --name backend-test backend:test
+          echo "## Sleep 10 ##"
+          sleep 10
+          echo "## Проверка запущенных контейнеров: ##"
+          docker ps -a
+
+      - name: Frontend image build
+        run: |
+          docker build -t frontend:test ./frontend
+          echo "## Проверка сформированных образов: ##"
+          docker images
+
+      - name: Frontend container run test
+        run: |
+          docker run -d --name frontend-test frontend:test
+          echo "## Sleep 10 ##"
+          sleep 10
+          echo "## Проверка запущенных контейнеров: ##"
+          docker ps -a
