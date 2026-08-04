@@ -17,6 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.SUBMODULES_CONTENT_ACCESS_TOKEN }} 
           submodules: recursive
 
       - name: Verify repository
