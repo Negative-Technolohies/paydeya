@@ -22,8 +22,8 @@ jobs:
             backend|frontend) ;;
             *) echo "::error::Неизвестный сабмодуль: $submodule"; exit 1 ;;
           esac
-          git -C "$submodule" fetch origin
-          git -C "$submodule" checkout --detach origin/develop
+          git -C "$submodule" fetch origin +refs/heads/develop:refs/remotes/origin/develop
+          git -C "$submodule" checkout --detach refs/remotes/origin/develop
           git add "$submodule"
           if git diff --cached --quiet; then
             echo "::notice::Submodule $submodule уже актуален, коммит не нужен"
