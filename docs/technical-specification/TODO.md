@@ -12,7 +12,10 @@
 | Добавить | `status`         | Enum: `unconfirmed`, `active`, `blocked`; NOT NULL; default `unconfirmed` | Статус учётной записи: неподтверждённая / активная / заблокированная                                       | Раздел 3 |
 | Добавить | `email_verified` | Boolean, NOT NULL, default false                                          | Подтверждён ли email                                                                                       | Раздел 3 |
 | Добавить | `phone_verified` | Boolean, NOT NULL, default false                                          | Подтверждён ли телефон                                                                                     | Раздел 3 |
+| Добавить | `is_banned`      | Boolean, NOT NULL, default false                                          | Флаг полной блокировки; при `true` сервер не отвечает на запросы пользователя                               | Разделы 17, 19 |
 | Добавить | Уникальность     | Partial Unique Index                                                      | `email` и `phone` уникальны среди непустых значений (`WHERE email IS NOT NULL`, `WHERE phone IS NOT NULL`) | Раздел 3 |
+
+> Примечание: `users.is_banned` и `users.status = 'blocked'` (раздел 3) описывают одно и то же состояние. Согласовать:** оставить одно из двух (или два поля, синхронизируемые на стороне приложения)** — открытый вопрос.
 
 ---
 
@@ -64,7 +67,7 @@
 | Добавить          | `tutor_user_id`   | BigInteger, FK → `users.id`, NOT NULL | ID репетитора из таблицы `users` (для уникального индекса на пару пользователей) | Разделы 8, 9 |
 | Уникальный индекс | —                 | `(student_user_id, tutor_user_id)`    | Один диалог на пару ученик-репетитор на уровне БД                                | Разделы 8, 9 |
 
-> Примечание: существующие FK `student_id` → `student_profiles.id` и `tutor_id` → `tutor_profiles.id` сохраняются. Поля `student_user_id` и `tutor_user_id` добавляются для построения уникального约束 на уровне `users`.
+> Примечание: существующие FK `student_id` → `student_profiles.id` и `tutor_id` → `tutor_profiles.id` сохраняются. Поля `student_user_id` и `tutor_user_id` добавляются для построения уникального ограничения на уровне `users`.
 
 ---
 
@@ -96,6 +99,8 @@
 | Добавить | `reviews_count`       | Integer, NOT NULL, default 0                         | Количество опубликованных отзывов                                                    | Разделы 7, 14 |
 | Добавить | `avatar_key`          | String, NULL                                         | Ссылка на файл аватара в хранилище                                                   | Раздел 14     |
 | Добавить | `verification_status` | Enum / String (точные значения — сценарий модерации) | Статус подтверждения квалификации. Фильтр каталога (7.3) читает его                  | Раздел 7      |
+
+> Примечание: сценарий 17 вводит отдельную таблицу `tutor_verifications` (см. раздел 7 ниже) как источник отметок верификации («Личность подтверждена», «Образование подтверждено», «Сертификат подтверждён»). Согласовать: хранить `verification_status` на профиле (денормализация) или вычислять по `tutor_verifications` — открытый вопрос.
 
 ---
 
@@ -178,6 +183,86 @@
 
 > Таблица вводится как предложение: детали ответа на отзыв ( количество ответов, редактирование) — открытый вопрос №55.
 
+### `verification_documents`
+
+Загружаемые преподавателем документы для проверки модератором (сценарий 17).
+
+| Поле         | Тип                                              | Комментарий                                                                                       |
+| ------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| id           | BigInteger, PK                                   |                                                                                                   |
+| tutor_id     | BigInteger, FK → `tutor_profiles.id`, NOT NULL   | Преподаватель                                                                                     |
+| type         | Enum: `passport`, `diploma`, `certificate`; NOT NULL | Тип документа                                                                                     |
+| title        | String(200), NULL                                | Для сертификата — название                                                                        |
+| file_keys    | JSONB, NULL                                      | Ключи файлов в объектном хранилище (или отдельная таблица)                                        |
+| status       | Enum: `pending`, `approved`, `rejected`, `cancelled`; NOT NULL; default `pending` | Статус проверки                  |
+| reviewer_id  | BigInteger, FK → `users.id`, NULL                | Модератор, принявший решение                                                                      |
+| comment      | String(1000), NULL                               | Комментарий / причина отклонения                                                                  |
+| created_at   | datetime, NOT NULL                               | Время загрузки                                                                                    |
+| reviewed_at  | datetime, NULL                                   | Время решения                                                                                     |
+| expires_at   | datetime, NULL                                   | Срок хранения (`reviewed_at + 30 дней`); по истечении — файлы и запись удаляются. Может быть продлён администратором |
+
+Индекс: `(tutor_id, type, status)` — быстрый поиск активных документов.
+
+### `tutor_verifications`
+
+Подтверждённые верификации преподавателя (сценарий 17). Единый источник отметок «Личность подтверждена» / «Образование подтверждено» / «Сертификат подтверждён».
+
+| Поле         | Тип                                                     | Комментарий                             |
+| ------------ | ------------------------------------------------------- | --------------------------------------- |
+| id           | BigInteger, PK                                          |                                         |
+| tutor_id     | BigInteger, FK → `tutor_profiles.id`, NOT NULL          | Преподаватель                           |
+| type         | Enum: `passport`, `diploma`, `certificate`; NOT NULL    | Тип верификации                         |
+| title        | String(200), NULL                                       | Для сертификата — название              |
+| verified_at  | datetime, NOT NULL                                      | Когда подтверждено                      |
+| document_id  | BigInteger, FK → `verification_documents.id`, NULL      | Связь с последним одобренным документом |
+| is_active    | Boolean, NOT NULL, default true                         | Активна ли (можно отозвать при reject)  |
+
+Индекс: `(tutor_id, type)`.
+
+### `external_review_requests`
+
+Запрос преподавателя на импорт отзывов с внешних платформ (сценарий 19).
+
+| Поле           | Тип                                                  | Комментарий                                                                                  |
+| -------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| id             | BigInteger, PK                                       |                                                                                              |
+| tutor_id       | BigInteger, FK → `tutor_profiles.id`, NOT NULL       | Преподаватель                                                                                |
+| platform_name  | String, NOT NULL                                     | Название внешней платформы (например, Profi.ru)                                              |
+| url            | String, NOT NULL                                     | Ссылка на публичную страницу с отзывами                                                      |
+| declared_count | Integer, NOT NULL                                    | Заявленное количество отзывов                                                                |
+| status         | Enum: `pending`, `approved`, `rejected`, `processing`, `completed`, `failed`, `cancelled`; NOT NULL; default `pending` | Статус обработки |
+| moderator_id   | BigInteger, FK → `users.id`, NULL                    | Модератор, обработавший запрос                                                                |
+| comment        | String(1000), NULL                                   | Комментарий (обязателен при `reject`)                                                         |
+| created_at     | datetime, NOT NULL                                   | Время подачи                                                                                 |
+| processed_at   | datetime, NULL                                       | Время обработки                                                                              |
+
+Индекс: `(tutor_id, status)`.
+
+### `external_reviews`
+
+Импортированные с внешних платформ отзывы (сценарий 19). Учитываются в общем рейтинге преподавателя наравне с внутренними.
+
+| Поле          | Тип                                                          | Комментарий                                     |
+| ------------- | ------------------------------------------------------------ | ----------------------------------------------- |
+| id            | BigInteger, PK                                               |                                                 |
+| tutor_id      | BigInteger, FK → `tutor_profiles.id`, NOT NULL               | Преподаватель                                   |
+| request_id    | BigInteger, FK → `external_review_requests.id`, NOT NULL     | Из какого запроса импортирован                  |
+| platform_name | String, NOT NULL                                             | Источник (внешняя платформа)                    |
+| author_name   | String, NULL                                                 | Имя автора на внешней платформе (если доступно) |
+| rating        | Integer, NOT NULL                                            | Оценка 1–5                                      |
+| text          | String(2000), NOT NULL                                       | Текст отзыва                                    |
+| source_url    | String, NULL                                                 | Ссылка на оригинальный отзыв (если доступна)    |
+| created_at    | datetime, NOT NULL                                           | Время импорта                                   |
+
+Индекс: `(tutor_id, request_id)`.
+
+### Новые права (таблица `permissions`, сиды)
+
+| Право                        | Комментарий                    | Источник  |
+| ---------------------------- | ------------------------------ | --------- |
+| `verify_tutor_documents`     | Проверка документов/верификация| Раздел 17 |
+| `import_external_reviews`    | Импорт внешних отзывов         | Раздел 19 |
+
 ---
 
 ## 8. Redis (не PostgreSQL)
@@ -203,10 +288,11 @@
 
 ## Сводка: количество изменений
 
-| Категория                   | Количество                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------- |
-| Таблицы с правками          | 5 (`users`, `student_profiles`, `questionnaires`, `conversations`, `reviews`)            |
-| Таблица с агрегатами        | 1 (`tutor_profiles`)                                                                     |
-| Новые таблицы PostgreSQL    | 5 (`education_levels`, `cities`, `agreement_surveys`, `agreement_answers`, `complaints`) |
-| Новая таблица (предложение) | 1 (`review_replies`)                                                                     |
-| Redis-хранилища             | 1 (`contact_confirmations` — спецификация в будущем)                                     |
+| Категория                   | Количество                                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Таблицы с правками          | 5 (`users`, `student_profiles`, `questionnaires`, `conversations`, `reviews`)                                                       |
+| Таблица с агрегатами        | 1 (`tutor_profiles`)                                                                                                                |
+| Новые таблицы PostgreSQL    | 9 (`education_levels`, `cities`, `agreement_surveys`, `agreement_answers`, `complaints`, `verification_documents`, `tutor_verifications`, `external_review_requests`, `external_reviews`) |
+| Новая таблица (предложение) | 1 (`review_replies`)                                                                                                                |
+| Новые права                 | 2 (`verify_tutor_documents`, `import_external_reviews`)                                                                             |
+| Redis-хранилища             | 1 (`contact_confirmations` — спецификация в будущем)                                                                                |
