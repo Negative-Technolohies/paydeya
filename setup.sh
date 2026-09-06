@@ -60,10 +60,11 @@ if [ "$SKIP_BRANCH" != true ]; then
   echo "==> Checking out branch $BRANCH"
   CURRENT_BRANCH="$(git branch --show-current 2>/dev/null || true)"
   if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
-    if ! git checkout "$BRANCH" >/dev/null 2>&1; then
-      echo "[warn] branch '$BRANCH' not found in the main repo, staying on '${CURRENT_BRANCH:-detached HEAD}'"
-    else
+    CHECKOUT_OUT=$(git checkout "$BRANCH" 2>&1)
+    if [ $? -eq 0 ]; then
       echo "[ok] main repo -> $BRANCH"
+    else
+      echo "[warn] cannot checkout '$BRANCH' in the main repo: ${CHECKOUT_OUT%%$'\n'*}"
     fi
   else
     echo "[ok] already on $BRANCH"
@@ -74,7 +75,8 @@ fi
 
 if [ "$SKIP_SUBMODULES" != true ]; then
   echo "==> Checking GitHub SSH access"
-  if ssh -o BatchMode=yes -o ConnectTimeout=5 -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+  SSH_OUT="$(ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 || true)"
+  if printf '%s' "$SSH_OUT" | grep -q "successfully authenticated"; then
     echo "[ok] GitHub SSH access"
   else
     echo "[warn] cannot verify GitHub SSH access (git@github.com). Check your SSH key."
@@ -93,10 +95,10 @@ if [ "$SKIP_SUBMODULES" != true ]; then
       echo "[ok] $sub kept on current branch (--no-branch)"
       continue
     fi
-    if (cd "$sub" && git checkout "$BRANCH" >/dev/null 2>&1); then
+    if SUB_OUT=$(git -C "$sub" checkout "$BRANCH" 2>&1); then
       echo "[ok] $sub -> $BRANCH"
     else
-      echo "[warn] branch '$BRANCH' not found in $sub, keeping pinned commit"
+      echo "[warn] cannot checkout '$BRANCH' in $sub: ${SUB_OUT%%$'\n'*}"
     fi
   done
 else

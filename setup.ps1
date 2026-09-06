@@ -10,8 +10,6 @@ param(
     [switch]$Help
 )
 
-$ErrorActionPreference = 'Stop'
-
 function Show-Usage {
     Write-Host @'
 Paydeya setup
@@ -55,13 +53,13 @@ else {
     Write-Host "==> Checking out branch $Branch"
     $currentBranch = (git branch --show-current 2>$null | Out-String).Trim()
     if ($currentBranch -ne $Branch) {
-        git checkout $Branch 2>$null
+        $checkoutErr = git checkout $Branch 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "[ok] main repo -> $Branch"
         }
         else {
-            $currentBranch = if ($null -eq $currentBranch -or $currentBranch -eq '') { 'detached HEAD' } else { $currentBranch }
-            Write-Host "[warn] branch '$Branch' not found in the main repo, staying on '$currentBranch'"
+            $firstErr = ($checkoutErr | Select-Object -First 1)
+            Write-Host "[warn] cannot checkout '$Branch' in the main repo: $firstErr"
         }
     }
     else {
@@ -71,7 +69,7 @@ else {
 
 if (-not $NoSubmodules) {
     Write-Host '==> Checking GitHub SSH access'
-    $sshOut = ssh -o BatchMode=yes -o ConnectTimeout=5 -T git@github.com 2>&1 | Out-String
+    $sshOut = ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | Out-String
     if ($sshOut -match 'successfully authenticated') {
         Write-Host '[ok] GitHub SSH access'
     }
@@ -96,12 +94,13 @@ if (-not $NoSubmodules) {
             if (-not $sub) { continue }
             Push-Location $sub
             try {
-                git checkout $Branch 2>$null
+                $subErr = git checkout $Branch 2>&1
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "[ok] $sub -> $Branch"
                 }
                 else {
-                    Write-Host "[warn] branch '$Branch' not found in $sub, keeping pinned commit"
+                    $firstErr = ($subErr | Select-Object -First 1)
+                    Write-Host "[warn] cannot checkout '$Branch' in ${sub}: $firstErr"
                 }
             }
             finally {
