@@ -42,10 +42,14 @@ jobs:
 
       - name: Push backend image
         run: |
+          docker tag $REGISTRY/$REGISTRY_PATH/backend:$IMAGE_TAG $REGISTRY/$REGISTRY_PATH/backend:latest
+          docker push $REGISTRY/$REGISTRY_PATH/backend:latest
           docker push $REGISTRY/$REGISTRY_PATH/backend:$IMAGE_TAG
 
       - name: Push frontend image
         run: |
+          docker tag $REGISTRY/$REGISTRY_PATH/frontend:$IMAGE_TAG $REGISTRY/$REGISTRY_PATH/frontend:latest
+          docker push $REGISTRY/$REGISTRY_PATH/frontend:latest
           docker push $REGISTRY/$REGISTRY_PATH/frontend:$IMAGE_TAG
 
       - name: Deploy by SSH
