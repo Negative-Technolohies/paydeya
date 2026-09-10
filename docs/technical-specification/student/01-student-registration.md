@@ -86,7 +86,7 @@
 
 ### 3.7. Изменения модели данных
 
-- целевой состав users после всех правок раздела 3 — id, email (уникален), phone (уникален), password_hash, role_id, full_name (String(150), NOT NULL), email_verified, phone_verified, status (unconfirmed / active / blocked), created_at.
+- целевой состав users после всех правок раздела 3 — id, email (уникален), phone (уникален), password_hash, role_id, full_name (String(150), NOT NULL), email_verified, phone_verified, status ???(unconfirmed / active / blocked), created_at.
 - Убрать `student_profiles.verified`: состояние подтверждения относится к учётной записи, а не к профилю. Связь `student_profiles.user_id` сохраняется.
 - Новая таблица подтверждений (например, `contact_confirmations`): `user_id`, `contact_type` (email/phone), `token_hash`, `expires_at`, `attempts_count`, `used_at`, `created_at`. Хранится хеш кода/токена, а не значение. Активным считается не более одного подтверждения на пару (user, contact_type).
 - Лимиты повторной отправки не требуют отдельной сущности — считаются по `created_at` существующих записей.
